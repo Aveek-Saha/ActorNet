@@ -12,6 +12,7 @@ import config
 TMDB_ACTOR_URL = "https://api.themoviedb.org/3/search/person?api_key=%s&language=en-US&query=%s&page=1"
 TMDB_ACTOR_CREDITS_URL = "https://api.themoviedb.org/3/person/%s/combined_credits?api_key=%s&language=en-US"
 TMDB_MOVIE_CREDITS_URL = "https://api.themoviedb.org/3/movie/%s/credits?api_key=%s&language=en-US"
+TMDB_TV_CREDITS_URL = "https://api.themoviedb.org/3/tv/%s/credits?api_key=%s&language=en-US"
 
 tmdb_api_key = config.tmdb_api_key
 
@@ -73,22 +74,24 @@ def get_movie_actors(credit_ids):
         if is_folder_exists('{}/{}.json'.format(MOVIE_DIR, str(credit))):
             saved = json.load(open("{}/{}.json".format(MOVIE_DIR, str(credit)), "r"))
             if saved['media_type'] == 'movie':
-                try:
-                    url = TMDB_MOVIE_CREDITS_URL % (credit, tmdb_api_key)
-                    response = urllib.request.urlopen(url)
-                    res_data = response.read()
-                    jres = json.loads(res_data)
+                url = TMDB_MOVIE_CREDITS_URL % (credit, tmdb_api_key)
+            elif saved['media_type'] == 'tv':
+                url = TMDB_TV_CREDITS_URL % (credit, tmdb_api_key)
+            try:
+                response = urllib.request.urlopen(url)
+                res_data = response.read()
+                jres = json.loads(res_data)
 
-                    actors = jres['cast']
-                    actor_ids = []
+                actors = jres['cast']
+                actor_ids = []
 
-                    for actor in actors:
-                        actor_ids.append(str(actor['id']))
-                    
-                    with open('{}/{}.txt'.format(ACTOR_DIR, str(actor['id'])), 'w', encoding='utf-8') as f:
-                        f.write(str.join('\n', (str(x) for x in actor_ids)))
-                except Exception as e:
-                    print("Error collecting ", credit)
+                for actor in actors:
+                    actor_ids.append(str(actor['id']))
+                
+                with open('{}/{}.txt'.format(ACTOR_DIR, str(actor['id'])), 'w', encoding='utf-8') as f:
+                    f.write(str.join('\n', (str(x) for x in actor_ids)))
+            except Exception as e:
+                print("Error collecting ", credit)
 
 
 
