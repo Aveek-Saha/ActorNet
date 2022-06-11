@@ -10,7 +10,7 @@ import os
 import config
 
 TMDB_ACTOR_URL = "https://api.themoviedb.org/3/search/person?api_key=%s&language=en-US&query=%s&page=1"
-TMDB_ACTOR_CREDITS_URL = "https://api.themoviedb.org/3/person/%s/combined_credits?api_key=%s&language=en-US"
+TMDB_ACTOR_CREDITS_URL = "https://api.themoviedb.org/3/person/%s?api_key=%s&language=en-US&append_to_response=combined_credits"
 TMDB_MOVIE_CREDITS_URL = "https://api.themoviedb.org/3/movie/%s/credits?api_key=%s&language=en-US"
 TMDB_TV_CREDITS_URL = "https://api.themoviedb.org/3/tv/%s/credits?api_key=%s&language=en-US"
 
@@ -115,6 +115,7 @@ def get_actor_ids():
     return actor_ids
 
 def get_second_order_credits(actor_ids):
+    actor_details = {}
     for actor_id in tqdm(actor_ids):
         try:
             url = TMDB_ACTOR_CREDITS_URL % (
@@ -123,7 +124,7 @@ def get_second_order_credits(actor_ids):
             res_data = response.read()
             jres = json.loads(res_data)
 
-            credits = jres['cast']
+            credits = jres['combined_credits']['cast']
             credit_ids = []
 
             for credit in credits:
@@ -132,8 +133,45 @@ def get_second_order_credits(actor_ids):
             with open('{}/{}.txt'.format(ACTORS_DIR, actor_id), 'w', encoding='utf-8') as f:
                 f.write(str.join('\n', (str(x) for x in credit_ids)))
 
+            details = {
+                "name": jres["name"],
+                "gender": jres["gender"],
+                "birthday": jres["birthday"],
+                "deathday": jres["deathday"],
+                "tmdb_id": jres["id"],
+                "imdb_id": jres["imdb_id"],
+                "place_of_birth": jres["place_of_birth"],
+                "popularity": jres["popularity"],
+            }
+            actor_details[str(actor_id)] = details
+
         except Exception as e:
                 print("Error: ", e)
+
+    json.dump(actor_details, open(
+            "{}/{}.json".format(DATA_DIR, "actor_details"), "w"))
+
+def get_ego_center_details(actor_name):
+    actor_id = get_actor_id(actor_name)
+    url = TMDB_ACTOR_CREDITS_URL % (
+            urllib.parse.quote(str(actor_id)), tmdb_api_key)
+    response = urllib.request.urlopen(url)
+    res_data = response.read()
+    jres = json.loads(res_data)
+
+    details = {
+        "name": jres["name"],
+        "gender": jres["gender"],
+        "birthday": jres["birthday"],
+        "deathday": jres["deathday"],
+        "tmdb_id": jres["id"],
+        "imdb_id": jres["imdb_id"],
+        "place_of_birth": jres["place_of_birth"],
+        "popularity": jres["popularity"],
+    }
+
+    json.dump(details, open(
+            "{}/{}.json".format(DATA_DIR, actor_name)), "w")
 
 actor_name = "Tom Holland"
 DATA_DIR = "data"
