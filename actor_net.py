@@ -171,7 +171,7 @@ def get_ego_center_details(actor_name):
     }
 
     json.dump(details, open(
-            "{}/{}.json".format(DATA_DIR, actor_name)), "w")
+            "{}/{}.json".format(DATA_DIR, actor_name), "w"))
 
 actor_name = "Tom Holland"
 DATA_DIR = "data"
@@ -191,8 +191,10 @@ create_dir(ACTORS_DIR)
 
 # get_movie_actors(credit_ids)
 
-actor_ids = get_actor_ids()
+# actor_ids = get_actor_ids()
 
-get_second_order_credits(actor_ids)
+# get_second_order_credits(actor_ids)
+
+get_ego_center_details(actor_name)
 
 # print(actor_credits)
