@@ -3,9 +3,11 @@ import urllib.request
 import urllib.parse
 from unidecode import unidecode
 from tqdm import tqdm
+import networkx as nx
 
 import json
 import os
+from itertools import combinations
 
 import config
 
@@ -103,6 +105,7 @@ def get_movie_actors(credit_ids):
     with open('{}/{}.txt'.format(DATA_DIR, "actor_ids"), 'w', encoding='utf-8') as f:
         f.write(str.join('\n', (str(x) for x in list(set(all_actors)))))
 
+
 def get_actor_ids():
     actor_ids = []
     try:
@@ -113,6 +116,7 @@ def get_actor_ids():
         print("Error: ", e)
         pass
     return actor_ids
+
 
 def get_second_order_credits(actor_ids):
     actor_details = {}
@@ -146,15 +150,16 @@ def get_second_order_credits(actor_ids):
             actor_details[str(actor_id)] = details
 
         except Exception as e:
-                print("Error: ", e)
+            print("Error: ", e)
 
     json.dump(actor_details, open(
-            "{}/{}.json".format(DATA_DIR, "actor_details"), "w"))
+        "{}/{}.json".format(DATA_DIR, "actor_details"), "w"))
+
 
 def get_ego_center_details(actor_name):
     actor_id = get_actor_id(actor_name)
     url = TMDB_ACTOR_CREDITS_URL % (
-            urllib.parse.quote(str(actor_id)), tmdb_api_key)
+        urllib.parse.quote(str(actor_id)), tmdb_api_key)
     response = urllib.request.urlopen(url)
     res_data = response.read()
     jres = json.loads(res_data)
@@ -171,7 +176,64 @@ def get_ego_center_details(actor_name):
     }
 
     json.dump(details, open(
-            "{}/{}.json".format(DATA_DIR, actor_name), "w"))
+        "{}/{}.json".format(DATA_DIR, actor_name), "w"))
+
+
+def get_credits(actor_id):
+    # create the users friend list
+    credits = []
+    try:
+        with open('{}/{}.txt'.format(ACTORS_DIR, actor_id)) as f:
+            for line in f:
+                credits.append(int(line))
+    except Exception as e:
+        print("Error: ", e)
+        pass
+    return (credits)
+
+
+def generate_graph(actor_name):
+
+    actor_details = json.load(open("{}/{}.json".format(DATA_DIR, "actor_details"), "r"))
+    ego_details = json.load(open("{}/{}.json".format(DATA_DIR, actor_name), "r"))
+    ego_details = {key: ego_details[key] if ego_details[key]!=None else "" for key in ego_details}
+    actor_ids = list(actor_details.keys())
+
+    pairs = list(combinations(actor_ids, 2))
+
+    G = nx.Graph()
+
+    for actor in actor_details:
+        details = actor_details[actor]
+        details = {key: details[key] if details[key]!=None else "" for key in details}
+
+        G.add_nodes_from([(details['name'], details)])
+
+    G.add_nodes_from([(ego_details['name'], ego_details)])
+
+    for a, b in tqdm(pairs):
+        a_credits = set(get_credits(a))
+        b_credits = set(get_credits(b))
+
+        common = list(a_credits.intersection(b_credits))
+        if len(common) > 0:
+            G.add_edge(actor_details[a]['name'], actor_details[b]['name'], weight=len(common))
+
+    ego_credits = []
+    with open('{}/{}.txt'.format(DATA_DIR, actor_name)) as f:
+        for line in f:
+            ego_credits.append(int(line))
+    
+    for alter in tqdm(actor_ids):
+        alter_credits = set(get_credits(alter))
+        common = list(alter_credits.intersection(set(ego_credits)))
+        if len(common) > 0:
+            G.add_edge(ego_details['name'], actor_details[alter]['name'], weight=len(common))
+
+    G.remove_edges_from(nx.selfloop_edges(G))
+    nx.write_gml(G, "{}/{}.gml".format(DATA_DIR, actor_name))
+
+
 
 actor_name = "Tom Holland"
 DATA_DIR = "data"
@@ -195,6 +257,8 @@ create_dir(ACTORS_DIR)
 
 # get_second_order_credits(actor_ids)
 
-get_ego_center_details(actor_name)
+# get_ego_center_details(actor_name)
+
+generate_graph(actor_name)
 
 # print(actor_credits)
