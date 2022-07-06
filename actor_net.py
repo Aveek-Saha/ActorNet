@@ -17,6 +17,7 @@ TMDB_MOVIE_CREDITS_URL = "https://api.themoviedb.org/3/movie/%s/credits?api_key=
 TMDB_TV_CREDITS_URL = "https://api.themoviedb.org/3/tv/%s/credits?api_key=%s&language=en-US"
 
 tmdb_api_key = config.tmdb_api_key
+actor_name = config.actor_name
 
 
 def create_dir(dir_name):
@@ -50,7 +51,7 @@ def get_actor_credits(actor_id):
     res_data = response.read()
     jres = json.loads(res_data)
 
-    credits = jres['cast']
+    credits = jres['combined_credits']['cast']
     credit_ids = []
 
     for credit in credits:
@@ -235,7 +236,6 @@ def generate_graph(actor_name):
 
 
 
-actor_name = "Tom Holland"
 DATA_DIR = "data"
 MOVIE_DIR = "{}/{}".format(DATA_DIR, "movies")
 ACTOR_DIR = "{}/{}".format(DATA_DIR, actor_name)
@@ -245,19 +245,16 @@ create_dir(MOVIE_DIR)
 create_dir(ACTOR_DIR)
 create_dir(ACTORS_DIR)
 
-# actor_id = get_actor_id(actor_name)
+actor_id = get_actor_id(actor_name)
+get_actor_credits(actor_id)
 
-# get_actor_credits(actor_id)
+credit_ids = get_ego_center_credits(actor_name)
+get_movie_actors(credit_ids)
 
-# credit_ids = get_ego_center_credits(actor_name)
+actor_ids = get_actor_ids()
+get_second_order_credits(actor_ids)
 
-# get_movie_actors(credit_ids)
-
-# actor_ids = get_actor_ids()
-
-# get_second_order_credits(actor_ids)
-
-# get_ego_center_details(actor_name)
+get_ego_center_details(actor_name)
 
 generate_graph(actor_name)
 
