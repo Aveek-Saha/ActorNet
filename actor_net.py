@@ -95,7 +95,8 @@ def get_movie_actors(credit_ids):
                 actor_ids = []
 
                 for actor in actors:
-                    actor_ids.append(str(actor['id']))
+                    if actor['known_for_department'] == "Acting":
+                        actor_ids.append(str(actor['id']))
                 all_actors += actor_ids
 
                 # with open('{}/{}.txt'.format(ACTOR_DIR, str(actor['id'])), 'w', encoding='utf-8') as f:
@@ -203,10 +204,20 @@ def generate_graph(actor_name):
     pairs = list(combinations(actor_ids, 2))
 
     G = nx.Graph()
+    
+    ego_credits = []
+    with open('{}/{}.txt'.format(DATA_DIR, actor_name)) as f:
+        for line in f:
+            ego_credits.append(int(line))
+
+    ego_details['common'] = len(ego_credits)
 
     for actor in actor_details:
+        alter_credits = set(get_credits(actor))
+        common = list(alter_credits.intersection(set(ego_credits)))
         details = actor_details[actor]
         details = {key: details[key] if details[key]!=None else "" for key in details}
+        details['common'] = len(common)
 
         G.add_nodes_from([(details['name'], details)])
 
@@ -219,11 +230,6 @@ def generate_graph(actor_name):
         common = list(a_credits.intersection(b_credits))
         if len(common) > 0:
             G.add_edge(actor_details[a]['name'], actor_details[b]['name'], weight=len(common))
-
-    ego_credits = []
-    with open('{}/{}.txt'.format(DATA_DIR, actor_name)) as f:
-        for line in f:
-            ego_credits.append(int(line))
     
     for alter in tqdm(actor_ids):
         alter_credits = set(get_credits(alter))
@@ -245,17 +251,21 @@ create_dir(MOVIE_DIR)
 create_dir(ACTOR_DIR)
 create_dir(ACTORS_DIR)
 
+print("Get movies acted in")
 actor_id = get_actor_id(actor_name)
 get_actor_credits(actor_id)
 
+print("Get actors from movies")
 credit_ids = get_ego_center_credits(actor_name)
 get_movie_actors(credit_ids)
 
+print("Get second order movie credits")
 actor_ids = get_actor_ids()
 get_second_order_credits(actor_ids)
 
 get_ego_center_details(actor_name)
 
+print("Generating graph")
 generate_graph(actor_name)
 
 # print(actor_credits)
