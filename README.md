@@ -32,6 +32,10 @@ Run the script and wait for it to complete, this may take a while.
 python actor_net.py
 ```
 
+### Output
+
+The final output is stored in a gml file: `data/<<name of actor>>.gml`. You can open this in a tool of your choice for analysis. I used Gephi for the image shown in the example.
+
 
 # Example
 
